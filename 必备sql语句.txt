@@ -1,0 +1,105 @@
+【MSSQL】根据其中关键字查询该关键字在数据库里面的哪个表
+set NOCOUNT on;
+DECLARE @SQL VARCHAR(1024)
+DECLARE @table VARCHAR(64)
+DECLARE @column VARCHAR(64)
+drop table #t
+create table #t(
+    tablename varchar(64),
+	columnname varchar(64)
+)
+DECLARE TABLES CURSOR FOR SELECT o.name,c.name from syscolumns c inner join sysobjects o on c.id=o.id
+where o.type='U' and c.xtype in (167, 175, 231, 239) order by o.name,c.name
+open tables 
+      fetch next from tables 
+	  into @table,@column
+	  while @@fetch_status=0
+	  begin 
+	      set @SQL='IF EXISTS(SELECT NULL FROM ['+@table+']'
+		  set @SQL=@SQL+'where RTRIM(LTRIM(['+@column+'])) like ''%'+'YQ小柴胡颗粒'+'%'')'
+		  set @SQL=@SQL+'insert into #t values('''+@table+''','''
+		  set @SQL=@SQL+@column+''')'
+		  exec (@SQL)
+		  fetch next from tables into @table,@column
+     end
+close tables
+DEALLOCATE TABLES
+SELECT * FROM #t
+drop table #t
+
+
+
+【ORACLE】根据其中关键字查询该关键字在数据库里面的哪个表
+DECLARE  
+CURSOR cur_query IS    
+  SELECT table_name, column_name, data_type FROM user_tab_columns;  
+  a NUMBER;  
+  sql_hard VARCHAR2(2000);  
+  vv NUMBER;  
+BEGIN  
+  DBMS_OUTPUT.ENABLE(buffer_size => null);
+  FOR rec1 IN cur_query LOOP  
+  a:=0;  
+  IF rec1.data_type ='VARCHAR2' THEN  
+  a := 1;  
+  END IF;  
+  IF a>0 THEN  
+  sql_hard := '';  
+  sql_hard := 'SELECT COUNT(*) FROM  "'|| rec1.table_name ||'" WHERE "'  ||rec1.column_name  || '"like''%山药破壁饮片%''';  
+  EXECUTE IMMEDIATE sql_hard INTO vv;  
+  IF vv > 0 THEN  
+    dbms_output.put_line('[字段值所在的表.字段]:['||rec1.table_name||'].['||rec1.column_name||']');  
+  END IF;   
+  END IF;  
+  END LOOP;  
+END;
+
+
+【MYSQL】根据其中关键字查询该关键字在数据库里面的哪个表
+
+DROP TABLE IF EXISTS temp;
+CREATE TABLE temp(tablename VARCHAR(255),LieName VARCHAR(255));
+DROP TABLE if EXISTS temp_sql;
+CREATE TABLE temp_sql(t_sql VARCHAR(2000));
+
+
+DROP procedure IF EXISTS getDataByDbName;
+CREATE procedure getDataByDbName(in tbName VARCHAR(255),IN ziduan VARCHAR(255),IN str VARCHAR(255))
+BEGIN
+DECLARE num INT DEFAULT 0;
+SET @selectSql =CONCAT('SELECT COUNT(1) FROM ',tbName,' where `',ziduan,'` LIKE ''%',str,'%'' INTO @num;');
+insert into temp_sql values (@selectSql);
+PREPARE stmt FROM @selectSql;
+EXECUTE stmt;
+IF @num>0 THEN
+    INSERT INTO temp VALUES (tbName,ziduan);
+END IF;
+END;
+
+DROP PROCEDURE IF EXISTS processquanjusou;
+CREATE PROCEDURE processquanjusou(in dbName VARCHAR(255),IN str VARCHAR(255))
+BEGIN
+DECLARE done int(2) DEFAULT 0;
+DECLARE biao VARCHAR (255);
+DECLARE ziduan VARCHAR (255);
+DECLARE indexss CURSOR
+FOR
+SELECT TABLE_NAME,COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=dbName and column_name <>'constraint' and TABLE_NAME <> 'demo.mebmer_maker_find';
+DECLARE CONTINUE HANDLER FOR SQLSTATE '02000' SET done=1;
+OPEN indexss;
+repeat
+FETCH indexss INTO biao,ziduan;
+call getDataByDbName(biao,ziduan,str);
+UNTIL done 
+END repeat;
+CLOSE indexss;
+end;
+
+CALL processquanjusou('s_wstyd','小柴胡');
+
+
+select * from temp;
+drop table if EXISTS temp_sql;
+drop table if EXISTS temp;
+DROP procedure IF EXISTS getDataByDbName;
+DROP PROCEDURE IF EXISTS processquanjusou;

@@ -1,0 +1,6 @@
+//断开物理空间
+alter database datafile 'E:\ORACLE\PRODUCT\10.2.0\ORADATA\ORCL\SCM_WMS_DAT.DBF' offline drop;
+//删除表空间
+drop tablespace SCM_WMS_DATA including contents and datafiles
+//建立表空间
+create tablespace SCM_WMS_DATA datafile 'E:\ORACLE\PRODUCT\10.2.0\ORADATA\ORCL\SCM_WMS_DAT.DBF'  size 1000m AUTOEXTEND ON;
